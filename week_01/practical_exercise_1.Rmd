@@ -1,7 +1,7 @@
 ---
 title: "practical_exercise_1, Methods 3, 2021, autumn semester"
-author: '[FILL IN YOUR NAME]'
-date: "[FILL IN THE DATE]"
+author: 'Mille'
+date: "15/9-21"
 output: html_document
 ---
 
@@ -15,92 +15,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Practical Exercise 1
-The goals of today's exercise are:
-
-1) create a _GitHub_ account and link it with _RStudio_ and create a new repository 
-2) getting you back into _R_ and to get you acquainted with _Python_
-3) brushing up on the general linear model
-
-# 1) Creating a _GitHub_ account and linking it to RStudio
-
-## _GitHub_
-
-Go to www.github.com and sign up if you aren't already  
-![__Figure__: _GitHub_'s front page](images/github_front_page.png)  
-
-If you are not already using personal tokens for authentication, have a look here:  
-https://www.edgoad.com/2021/02/using-personal-access-tokens-with-git-and-github.html
-
-Then install _R_ and _RStudio_ if you haven't already
-
-## _R_
-
-### Mac and Windows
-_R_ can be downloaded and installed from https://mirrors.dotsrc.org/cran/ (Danish mirror)  
-
-### Linux
-Can also be installed from the link above, but it is more convenient to use your package manager, e.g.
-
-![__Figure__: my package manager](images/package_manager.png)
-
-### _RStudio_ (IDE: Integrated Development Editor)
-
-_RStudio_ can be downloaded from https://www.rstudio.com/products/rstudio/download/
-
-## Link _GitHub_ and _RStudio_
-
-Link your _GitHub_ account to _RStudio_ and create a repository for the assignments and practical exercises.  
-Follow this tutorial: https://happygitwithr.com (Chapter 12)
-
-# 2) Prepare your _R_ and _Python_ environments
-Today's first goal is to get your _R_ and _Python_ environments up and running  
-
-## _R_
-
-### _R_ Packages
-
-Make sure you can run _R Markdown_; create a new _R Markdown_ document - if you're asked to install extra packages, do so.  
-We'll need more packages later, but we'll install as we go...
-
-## _Python_
-
-Due to the fact that _Python_ packages have a lot of interdependencies that may cause compability problems if you keep everything in one big environment, it is advisable to use a package management system like _Conda_.  
-I propose using _Miniconda_ that can be downloaded from here: https://docs.conda.io/en/latest/miniconda.html (choose 64-bit)  
-  
-We'll not do much with it today, but will return to it for the machine learning part.  
-  
-An advantage is that separate environments can be maintained that are each focused on its own niche:  
-
-![__Figure__: my environments: _mne_ is for analysis of magnetoencephalographic data, _psychopy_ is for presenting experiment scenarios, _fsl_ is for processing magnetic resonance imaging data](images/list_of_environments.png)
-
-Then use the yml-file from _GitHub_ to create the appropriate environment:
-```{bash, eval=FALSE}
-# CODE TO BE RUN IN A BASH TERMINAL
-## create environment
-conda env create -f methods3_environment.yml
-## activate environment
-conda activate methods3
-## after activation, you can run Spyder, (IDE)
-spyder
-```
-
-![__Figure__: _Spyder_](images/spyder.png)
-
-### Check that it works
-
-```{python}
-a = 2 + 2
-b = a + 3
-print(b)
-
-a_list = [1, 'a', 2.3] # square brackets initialize lists that can contain any combination of any type of object (an integer, a string and a float in this case)
-## Note that Python is zero-indexed ()
-print(a_list[0]) ## prints the first entry
-print(a_list[1]) ## prints the second entry
-```
-### Zero-indexing (reference)
-https://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD831.html
 
 # 3) Brushing up on the General Linear Model
 
@@ -167,11 +81,37 @@ The general linear model: $Y = X \beta + \epsilon$:
 Do a linear regression, expressing fuel usage as a function of weight using the function __lm__  
 ```{r, eval=FALSE}
 data(mtcars)
-model <- lm(formula=..., data=...)
+model <- lm(formula=mpg~wt, data=mtcars)
+
+?model.matrix
+model.matrix(model)
+
+summary(model)
 ```
 1. extract $\hat{\beta}$, $Y$, $\hat{Y}$, $X$ and $\epsilon$ from __model__ (hint: have a look at the function __model.matrix__)  
     i. create a plot that illustrates $Y$ and $\hat{Y}$ (if you are feeling ambitious, also include $\epsilon$ (hint: you can use the function __arrows__))
+
+```{r}
+
+b_hat <- model$coefficients
+Y <-  mtcars$mpg
+Y_hat <- X%*%b_hat
+X <- cbind(1, mtcars$wt)
+
+plot(X[,2], Y_hat, type = "b") #specifying type b will make the plot show both the points and the line
+plot(X[,2], Y)
+#points(Y, Y_hat, col=red)
+
+
+```
+
+    
 2. estimate $\beta$ for a quadratic model ($y = {\beta}_{2} x^2 + {\beta}_{1} x + {\beta}_{0}$) using ordinary least squares _without_ using __lm__; $\hat{\beta} = {({X}^{T} X)}^{-1} {X}^{T} Y$ (hint: add a third column to $X$ from step 1)
+
+```{r}
+X
+```
+
 3. compare your acquired $\hat{\beta}$ with the output of the corresponding quadratic model created using __lm__ (hint: use the function __I__, see details under help and the sub-section formula operators here: https://www.datacamp.com/community/tutorials/r-formula-tutorial)  
     i. create a plot that illustrates $Y$ and $\hat{Y}$ (if you are feeling ambitious, also include $\epsilon$ (hint: you can use the function __arrows__))  
 
