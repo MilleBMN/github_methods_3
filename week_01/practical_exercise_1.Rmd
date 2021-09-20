@@ -94,14 +94,30 @@ summary(model)
 ```{r}
 
 b_hat <- model$coefficients
-Y <-  mtcars$mpg
-Y_hat <- X%*%b_hat
+b_hat #37.285, -5.344
+y <-  mtcars$mpg
+y
+x <- mtcars$wt
+x
 X <- cbind(1, mtcars$wt)
+X
+y_hat <- X%*%b_hat #the estimated mpg's
+y_hat
 
-plot(X[,2], Y_hat, type = "b") #specifying type b will make the plot show both the points and the line
-plot(X[,2], Y)
-#points(Y, Y_hat, col=red)
 
+
+plot(X[,2], y_hat, type = "b") #specifying type b will make the plot show both the points and the line
+plot(X[,2], y)
+
+plot(X[,2], y_hat, points(y, type = "p"))
+
+df <- tibble(x = mtcars$wt, y = mtcars$mpg, y_hat = y_hat)
+
+ggplot(data = df)+
+  geom_smooth(aes(x, y, color = "data")) + # A line fittet to actual data-points
+  geom_smooth(aes(x, y_hat, color = "model"))+ # The linear model based on points
+  geom_point(aes(x, y, color = "data")) + # actual data-points
+  geom_point(aes(x, y_hat, color = "model")) # The linear model based on points
 
 ```
 
@@ -109,21 +125,97 @@ plot(X[,2], Y)
 2. estimate $\beta$ for a quadratic model ($y = {\beta}_{2} x^2 + {\beta}_{1} x + {\beta}_{0}$) using ordinary least squares _without_ using __lm__; $\hat{\beta} = {({X}^{T} X)}^{-1} {X}^{T} Y$ (hint: add a third column to $X$ from step 1)
 
 ```{r}
-X
+pacman::p_load(tidyverse)
+X_2 <- cbind(1, x, I(x^2)) 
+
+solve(t(X) %*% X) %*% (t(X) %*% y) #for the linear model
+solve(t(X_2) %*% X_2) %*% (t(X_2) %*% y) #for the quadratic model
 ```
 
 3. compare your acquired $\hat{\beta}$ with the output of the corresponding quadratic model created using __lm__ (hint: use the function __I__, see details under help and the sub-section formula operators here: https://www.datacamp.com/community/tutorials/r-formula-tutorial)  
     i. create a plot that illustrates $Y$ and $\hat{Y}$ (if you are feeling ambitious, also include $\epsilon$ (hint: you can use the function __arrows__))  
+    
+```{r}
+a <- model.frame(y~x + I(x^2), data = df) 
+model2 <- lm(y~x+I(x^2), data = a)
+
+b_hat2 <- coefficients(model2)
+b_hat2
+
+quad_x <- model.matrix(model2)
+quad_yhat <- quad_x%*%coefficients(model2)
+
+df_quad <- tibble(x = a$x, y = a$y, y_hat = quad_yhat)
+
+ggplot(data = df_quad)+
+  geom_point(aes(x, y, color = "data")) + # actual data-points
+  geom_point(aes(x, y_hat, color = "model"))+ # The linear model based on points
+  geom_smooth(aes(x, y, color = "data")) + # A line fittet to actual data-points
+  geom_smooth(aes(x, y_hat, color = "model")) # The linear model based on points
+
+
+```
+
 
 ## Exercise 2
 Compare the plotted quadratic fit to the linear fit  
 
 1. which seems better?  
+```{r}
+summary(model)
+summary(model2)
+```
+The quadratic fit has a bit better adjusted r-squared. Both have good p-values. 
+
 2. calculate the sum of squared errors, (show the calculation based on $\epsilon$). Which fit has the lower sum?  
-3. now make a cubic fit ($y = {\beta}_{3} x^3 + {\beta}_{2} x^2 + {\beta}_{1} x + {\beta}_{0}$) and compare it to the quadratic fit  
-    i. create a plot that illustrates $Y$ and $\hat{Y}$ for both the cubic and the quadratic fits (plot them in the same plot)  
+```{r}
+sse_linear <- sum((y_hat - y)^2)
+sse_linear #278.3219
+
+sse_quad <- sum((quad_yhat - y)^2)
+sse_quad #203.7454
+```
+The quadratic model has the lowest sse
+
+3. now make a cubic fit ($y = {\beta}_{3} x^3 + {\beta}_{2} x^2 + {\beta}_{1} x + {\beta}_{0}$) and compare it to the quadratic fit
+```{r}
+b <- model.frame(y~x + I(x^2) + I(x^3), data = df) 
+model3 <- lm(y~x+I(x^2)+I(x^3), data = b)
+
+summary(model2)
+summary(model3)
+
+```
+The quadratic one is a liiiiiittle bit better (r-squared wise), but none of the parameters are significant. 
+
+    i. create a plot that illustrates $Y$ and $\hat{Y}$ for both the cubic and the quadratic fits (plot them in the same plot)
+```{r}
+cub_x <- model.matrix(model3)
+cub_yhat <- cub_x%*%coefficients(model3)
+
+df_cub <- tibble(x = b$x, y = b$y, y_hat_cub = cub_yhat, y_hat_quad = quad_yhat)
+
+ggplot(data = df_cub)+
+  geom_point(aes(x, y_hat_quad, color = "quad")) + # actual data-points
+  geom_point(aes(x, y_hat_cub, color = "cub"))+ # The linear model based on points
+  geom_point(aes(x, y, color = "data"))
+  geom_smooth(aes(x, y_hat_quad, color = "quad")) + # A line fittet to actual data-points
+  geom_smooth(aes(x, y_hat_cub, color = "cub")) # The linear model based on points
+```
+  
     ii. compare the sum of squared errors  
-    iii. what's the estimated value of the "cubic" (${\beta}_3$) parameter? Comment on this!  
+```{r}
+sse_cub <- sum((cub_yhat - y)^2)
+sse_cub #203.6699
+```
+Sse is SLIGHTLY (but like almost nothing) better than the quadratic. 
+
+    iii. what's the estimated value of the "cubic" (${\beta}_3$) parameter? Comment on this! 
+```{r}
+coefficients(model3)
+```
+It's only 0.0459, which explains why the effect of adding this fourth parameter doesn't do a lot. The model is very similar to the quadratic. 
+
 4. bonus question: which summary statistic is the fitted value (_Intercept_ or ${\beta}_0$ in $y = {\beta}_0$) below identical to?
 ```{r, echo=FALSE}
 lm(mpg ~ 1, data=mtcars)
@@ -132,7 +224,10 @@ lm(mpg ~ 1, data=mtcars)
 Doing a logistic regression - estimating the probability that a car has automatic transmission (0) or manual transmission (1) based on its weight
 ```{r, eval=FALSE}
 data(mtcars)
-logistic.model <- glm(formula=..., data=..., family='binomial)
+logistic.model <- glm(formula=am~wt, data=mtcars, family='binomial')
+summary(logistic.model)
+
+plot(mtcars$wt, mtcars$am)
 ```
 
 Probabilities live on the range $(0, 1)$ - using the so-called logit function as a "link-function" we can map these onto the range $(-\infty, \infty)$, i.e. the real numbers.  
@@ -141,15 +236,57 @@ What we model in this case is: $Pr(y = 1) = logit^{-1}(X \beta)$, i.e. the proba
 It is helpful to define the logit function and its inverse function for the following:  
 
 ```{r}
-logit <-     function(x) log(x / (1 - x))
+logit <- function(x) log(x / (1 - x))
 inv.logit <- function(x) exp(x) / (1 + exp(x))
+
+inv.logit(12.040)
+
+probs <- predict(logistic.model, type = "response")
+mtcars <- cbind(mtcars, probs)
+
 ```
 
 1. plot the fitted values for __logistic.model__:  
+```{r}
+plot(fitted(logistic.model)) #on the x axis is the different cars, on the y axis is the probability of manual transmission. So e.g. car number three has a high prob of having manual transmission
+
+fitted <- fitted(logistic.model)
+linearpredictors <- inv.logit(12.040-4.024*x)
+df3 <- tibble(fitted, linearpredictors)
+
+ggplot(data = df3)+
+  geom_point(aes(x, fitted, color = "fitted")) + # actual data-points
+  geom_point(aes(x, linearpredictors, color = "linear predictors"))+ # The linear model based on points
+  geom_smooth(aes(x, fitted, color = "fitted")) + # A line fittet to actual data-points
+  geom_smooth(aes(x, linearpredictors, color = "linear predictors")) # The linear model based on points
+
+
+```
+
     i. what is the relation between the __linear.predictors__ and the __fitted_values__ of the __logistic.model__ object?
+When you take the inverse of the linear predictors, you find the probabilities (so values from 0 to 1). If you have the probabilities, you can use the logit function to get the linear values. 
+
+
 2. plot the logistic function, you've estimated based on your $\hat{\beta}$, (not just the fitted values). Use an _xlim_ of (0, 7)
+```{r}
+plot(mtcars$wt, inv.logit(logistic.model$coefficients[2]*x+logistic.model$coefficients[1]))
+
+```
+
     i. what's the interpretation of the estimated $\hat{\beta}_0$ (the _Intercept_)
+In terms of probabilities, the intercept is where the probability is basically 1. The 12.040 is not meaningful.
+
     ii. calculate the estimated probability that the Pontiac Firebird has automatic transmission, given its weight
+```{r}
+mtcars_firebird <- mtcars%>% 
+  filter(rownames(mtcars) == "Pontiac Firebird") %>% 
+  select(probs)
+mtcars_firebird
+
+
+```
+The probability that the Pontiac Firebird has automatic transmission, given its weight is 3.132%. 
+
     iii. bonus question - plot the logistic function and highlight all the cars where we guessed wrongly, if we used the following "quantizer" function:
     
 \begin{equation}
