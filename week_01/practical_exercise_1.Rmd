@@ -285,7 +285,7 @@ mtcars_firebird <- mtcars%>%
 mtcars_firebird
 
 ```
-The probability that the Pontiac Firebird has automatic transmission, given its weight is 3.132%. 
+The probability that the Pontiac Firebird has manual transmission, given its weight is 3.132%. 
 
     iii. bonus question - plot the logistic function and highlight all the cars where we guessed wrongly, if we used the following "quantizer" function:
     
@@ -304,6 +304,8 @@ ggplot(mtcars, aes(x = wt, y = mpg)) +
   geom_smooth(method = "lm", aes(color = "linear"), se = FALSE) +
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), aes(color = "quadratic"), se = FALSE) +
   theme_bw()
+
+getwd()
 ```
     i. judging visually, does adding a quadratic term make a difference?
 Mmmmh maybe a little bit... At least all the data points are above the linear graph in both ends, so that would suggest yes. 
@@ -315,11 +317,15 @@ AIC(model, model2) #AIC for linear is 166 and AIC for quadratic is 158
 summary(model) #residual standard error is 3.046
 summary(model2) # residual standard error is 2.651
 
+sum(residuals(model)^2) #residual variance is 278.322
+sum(residuals(model2)^2) #residual variance is 203.745
+
 ```
-The quadratic model is better according to both AIC and residual standard error.
+The quadratic model is better according to both AIC and residual variance.
 
     iii. in your own words, why might it be good to penalise a model like the quadratic model, we just fitted.
-Well, I feel like this is a trap... Maybe it's something as simple as the fact that we don't have a lot of data points "in the ends" of the grpah, where we see the effect of adding the quadratic term? Otherwise, please do explain :))) 
+Maybe it's something as simple as the fact that we don't have a lot of data points "in the ends" of the graph, where we see the effect of adding the quadratic term? Otherwise, please do explain :))) 
+We are penalising it for its complexity. 
     
 # Next time
 We are going to looking at extending our models with so called random effects. We need to install the package "lme4" for this. Run the code below or install it from your package manager (Linux)  
