@@ -22,6 +22,8 @@ In this assignment we will be investigating the _politeness_ dataset of Winter a
 The dataset has been shared on GitHub, so make sure that the csv-file is on your current path. Otherwise you can supply the full path.
 
 ```{r}
+setwd("/Users/millebryske/Desktop/Uni/3. semester/Methods 3/github_methods_3/week_02")
+
 politeness <- read.csv('politeness.csv') ## read in data
 ```
 
@@ -36,23 +38,87 @@ REMEMBER: This assignment will be part of your final portfolio
 
 ## Exercise 1 - describing the dataset and making some initial plots
 
-1) Describe the dataset, such that someone who happened upon this dataset could understand the variables and what they contain  
+1) Describe the dataset, such that someone who happened upon this dataset could understand the variables and what they contain
+
+My answer:
+We have a dataset with 224 observations and seven coloums to describe each observation. The seven variable are: 
+- Subject. All the matching "names" are one subject.
+- Gender. Pretty self-explanatory.
+- Scenario. The subjects are presented to different scenarios.
+- Attitude. Whether it is the formal or informal condition of the scenario.
+- Total duration. Amount of time the subject uses to "complete" the scenario. 
+- f0mn. Base frequency. Pitch (in Hz).
+- hiss count. Some sound might say while speaking (loud breath intakes). 
+
     i. Also consider whether any of the variables in _politeness_ should be encoded as factors or have the factor encoding removed. Hint: ```?factor```  
-2) Create a new data frame that just contains the subject _F1_ and run two linear models; one that expresses _f0mn_ as dependent on _scenario_ as an integer; and one that expresses _f0mn_ as dependent on _scenario_ encoded as a factor  
+Gender and attitude. 
+```{r}
+ls.str(politeness)
+
+as.factor(politeness$gender)
+as.factor(politeness$attitude)
+```
+
+
+2) Create a new data frame that just contains the subject _F1_ and run two linear models; one that expresses _f0mn_ as dependent on _scenario_ as an integer; and one that expresses _f0mn_ as dependent on _scenario_ encoded as a factor
+```{r}
+F1df1 <- politeness %>% 
+  filter(subject == "F1")
+F1df1$scenario <- as.integer(F1df1$scenario)
+
+F1df2 <- politeness %>% 
+  filter(subject == "F1")
+F1df2$scenario <- as.factor(F1df2$scenario)
+
+F1_integer <- lm(f0mn ~ scenario, F1df1)
+F1_factor <- lm(f0mn ~ scenario, F1df2)
+summary(F1_integer)
+summary(F1_factor)
+
+```
+
     i. Include the model matrices, $X$ from the General Linear Model, for these two models in your report and describe the different interpretations of _scenario_ that these entail
+```{r}
+model.matrix(F1_integer)
+model.matrix(F1_factor)
+
+```
+Interpretation when scenario is integer:
+Scenario is treated as something continuous that can have any value on a number scale. 
+
+Interpretation when scenario is factor:
+Scenario is treated as something where we have a limited set of possible values (specifically the seven scenarios we see in the data set, I think). So a scenario either is one of seven or not, and R gives us a TRUE/FALSE (where 1 is true and 0 is false) answer to all of the seven possibilities.
+
+
     ii. Which coding of _scenario_, as a factor or not, is more fitting?
+As factor. 
+
 3) Make a plot that includes a subplot for each subject that has _scenario_ on the x-axis and _f0mn_ on the y-axis and where points are colour coded according to _attitude_
+```{r}
+plot_allparticipants <- politeness %>% 
+  ggplot(aes(x = scenario, y = f0mn, color = attitude))+
+  geom_point()+
+  facet_wrap(~subject)
+plot_allparticipants
+```
+
     i. Describe the differences between subjects
+Well, first of all the males have a way lower f0mn, which is very much expected. Other than that, a few of the participants vary way more in f0mn according to the scenario than others. It looks like the informal pitch is a liiiiittle bit higher than the formal one. 
     
 ## Exercise 2  - comparison of models
 
 For this part, make sure to have `lme4` installed.  
 You can install it using `install.packages("lme4")` and load it using `library(lme4)`  
 `lmer` is used for multilevel modelling
+```{r}
+pacman::p_load("lme4")
+```
+
 
 ```{r, eval=FALSE}
 mixed.model <- lmer(formula=..., data=...)
 example.formula <- formula(dep.variable ~ first.level.variable + (1 | second.level.variable))
+?factor
 ```
 
 1) Build four models and do some comparisons
@@ -60,6 +126,13 @@ example.formula <- formula(dep.variable ~ first.level.variable + (1 | second.lev
     ii. a two-level model that adds a second level on top of i. where unique intercepts are modelled for each _scenario_
     iii. a two-level model that only has _subject_ as an intercept 
     iv. a two-level model that models intercepts for both _scenario_ and _subject_
+```{r}
+model1 <- lm(f0mn~gender, politeness)
+model2 <- lmer(f0mn~gender + (1|scenario), politeness)
+model3 <- lmer(f0mn~gender + (1|subject), politeness)
+model4 <- lmer(f0mn~gender + (1|scenario) + (1|subject), politeness)
+```
+
     v. which of the models has the lowest residual standard deviation, also compare the Akaike Information Criterion `AIC`?
     vi. which of the second-level effects explains the most variance?
 2) Why is our single-level model bad?
