@@ -199,7 +199,7 @@ Not really sure... To the right it looks a bit weird.
 grand_effects <- fixef(model4)
 specific_effects <- ranef(model4)
 grand_effects
-specific_effects
+specific_effects #well, I don't use this for shit, and I'm not sure what I'm doing wrong 
 
 ggplot(data = politeness, aes(x = scenario, y = f0mn, color = attitude)) +
   geom_point() +
