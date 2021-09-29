@@ -181,9 +181,11 @@ summary(model_meanpitch)
 pacman::p_load(car)
 
 qqPlot(model_meanpitch)
+qqPlot(resid(model_meanpitch))
 qqPlot(model1)
+qqPlot(resid(model1)) #I really don't know which qq-plots to use... 
 ```
-The new model? I see less of a pattern, and the datapoints are within the dotted lines (which I don't really know what are).
+The new model? I see less of a pattern, and the datapoints are within the dotted lines (which I don't really know what are). Both are right skewed though. 
 
     iv. Also make a quantile-quantile plot for the residuals of the  multilevel model with two intercepts. Does it look alright?
 ```{r}
