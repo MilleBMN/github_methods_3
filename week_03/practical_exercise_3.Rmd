@@ -242,6 +242,7 @@ data.count <- df %>%
   group_by(subject, task, pas) %>%
   dplyr::summarise("count" = n())
 
+
 ```        
 
 2) Now fit a multilevel model that models a unique "slope" for _pas_ for each _subject_ with the interaction between _pas_ and _task_ and their main effects being modelled  
@@ -292,18 +293,37 @@ pas_foursubjects %>%
 
 3) Finally, fit a multilevel model that models _correct_ as dependent on _task_ with a unique intercept for each _subject_  
 ```{r}
-correctmodel <- glmer
+correctmodel <- glmer(correct ~ task + (1|subject), data = df, family = "binomial")
+summary(correctmodel)
 ```
 
 
     i. does _task_ explain performance?  
+Yes. All p-values < 0.05. They have most correct in singles, then pairs and then quadruplets. Makes much sense. 
 
     ii. add _pas_ as a main effect on top of _task_ - what are the consequences of that?  
+```{r}
+correctmodel2 <- glmer(correct ~ task + pas + (1|subject), data = df, family = "binomial")
+summary(correctmodel2)
+```
+Now the effects of the different tasks are not significant, but the effect of pas is, and the estimate is way higher, so it seems that pas is a way better predictor for correct answers. That makes pretty good sense, since pas stands for "perceptual awareness scale", so the participants rate how aware they were. 
 
     iii. now fit a multilevel model that models _correct_ as dependent on _pas_ with a unique intercept for each _subject_
+```{r}
+correctmodel3 <- glmer(correct ~ pas + (1|subject), data = df, family = "binomial")
+summary(correctmodel3)
+
+tibble(sum(residuals(correctmodel)^2), sum(residuals(correctmodel2)^2), sum(residuals(correctmodel3)^2), sum(residuals(correctmodel4)^2))
+```
+What a good model 
 
     iv. finally, fit a model that models the interaction between _task_ and _pas_  and their main effects  
+```{r}
+correctmodel4 <- glmer(correct ~ task*pas + (1|subject), data = df, family = "binomial")
+summary(correctmodel4)
+```
+
 
     v. describe in your words which model is the best in explaining the variance in accuracy 
-
+The best model we have made is the correctmodel3, which predicts correct by pas and has random intercepts per subject. It has the lowest AIC. 
 
