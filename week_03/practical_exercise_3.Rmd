@@ -53,20 +53,32 @@ df$correct <- ifelse(df$target.type == "even" & df$obj.resp == "e" | df$target.t
 ```
     
     ii. describe what the following variables in the data frame contain, _trial.type_, _pas_, _trial_, _target.contrast_, _cue_, _task_, _target_type_, _rt.subj_, _rt.obj_, _obj.resp_, _subject_ and _correct_. (That means you can ignore the rest of the variables in your description). For each of them, indicate and argue for what `class` they should be classified into, e.g. _factor_, _numeric_ etc.  
-Trial type:
-Pas:
-Trial:
-Target contrast:
-Cue:
-Task:
-Target type:
-rt. obj:
-subject:
-Correct:
+trial.type: Indicates whether subject is doing the staircase task (first experiment) or the follow-up experiment.
+Should be class character, as it is a category.
+pas: Indicates subjects response to trial on the Perceptual Awareness Scale (PAS). Takes a value between 1-4, and will therefore be treated as numeric.
+trial: A numbered list for every trial the subject completes, i.e. presses e or o in either of the trial types., per subject. I should think character class for now (might change).
+target.contrast: The contrast between the background and the digit (target). Between 0-1, treated as numeric.
+cue: The specific cue pattern, will treat as character.
+task: Whether cue pattern is 2 (singles), 4 (pairs) or 8 (quadruplets) digits. Will treat as character.
+target.type: Whether target type is an odd or even number - will treat as character.
+rt.subj: Reaction time for response to PAS pr. trail - will treat as numeric.
+rt.obj: Reaction time for responding if target is even or odd - will treat as numeric.
+obj.resp: Subjects response to target is either even or odd - will treat as character.
+subject: Participant ID, ordered from 001. Treated as character.
+correct: Whether subject answered correctly in the trail, 1 for correct and 0 for incorrect. Is logical (binary)
 
 ```{r}
 #Changing to correct classes
 ls.str(df)
+df$pas <- as.numeric(df$pas)
+df$trial <- as.character(df$trial)
+df$target.contrast <- as.numeric(df$target.contrast)
+df$cue <- as.character(df$cue)
+df$rt.subj <- as.numeric(df$rt.subj)
+df$rt.obj <- as.numeric(df$rt.obj)
+df$target.contrast <- as.numeric(df$target.contrast)
+df$correct <- as.integer(df$correct)
+df$correct <- as.logical(df$correct)
 ```
 
 
@@ -121,7 +133,7 @@ facet_wrap( ~ subject)
 ```
     
     v. in your own words, describe how the partial pooling model allows for a better fit for each subject 
-
+It accommodates the individual subjects instead of using the data from all participants to make one graph. 
 
 
 ## Exercise 2
@@ -161,7 +173,7 @@ qqPlot(interceptmodel4)
 ```
 
     i. comment on these   
-
+They pretty bad... 
 
     ii. does a log-transformation of the response time data improve the Q-Q-plots?
 ```{r}
@@ -255,7 +267,7 @@ summary(pasmodel)
 Poisson, because it's good for modelling counts. 
 
     ii. why is a slope for _pas_ not really being modelled?  
-
+Doesn't really make sense to have a slope, when the values on the x-axis are not continuous, they are different categories. 
 
     iii. if you get a convergence error, try another algorithm (the default is the _Nelder_Mead_) - try (_bobyqa_) for which the `dfoptim` package is needed. In `glmer`, you can add the following for the `control` argument: `glmerControl(optimizer="bobyqa")` (if you are interested, also have a look at the function `allFit`)
 Done... 
@@ -263,6 +275,7 @@ Done...
     iv. when you have a converging fit - fit a model with only the main effects of _pas_ and _task_. Compare this with the model that also includes the interaction  
 ```{r}
 pasmodel2 <- glmer(count ~ pas + task + (pas|subject), data = data.count, family = poisson)
+summary(pasmodel2)
 
 tibble(sum(residuals(pasmodel)^2), sum(residuals(pasmodel2)^2))
 AIC(pasmodel, pasmodel2)
@@ -274,7 +287,7 @@ AIC(pasmodel, pasmodel2)
 I would choose the one including the interaction. 
 
     vi. based on your chosen model - write a short report on what this says about the distribution of ratings as dependent on _pas_ and _task_ 
-
+Not sure... 
 
     vii. include a plot that shows the estimated amount of ratings for four subjects of your choosing 
 ```{r}
@@ -313,7 +326,6 @@ Now the effects of the different tasks are not significant, but the effect of pa
 correctmodel3 <- glmer(correct ~ pas + (1|subject), data = df, family = "binomial")
 summary(correctmodel3)
 
-tibble(sum(residuals(correctmodel)^2), sum(residuals(correctmodel2)^2), sum(residuals(correctmodel3)^2), sum(residuals(correctmodel4)^2))
 ```
 What a good model 
 
