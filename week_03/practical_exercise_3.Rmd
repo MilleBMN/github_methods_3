@@ -13,6 +13,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(tidyverse)
 ```
 
 # Exercises and objectives
