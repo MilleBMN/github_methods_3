@@ -18,10 +18,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-<<<<<<< HEAD
 pacman::p_load(tidyverse)
-=======
->>>>>>> c78e6ff3b1a0c11ea82ef719e7fe86fbc152da69
 ```
 
 # Exercises and objectives
@@ -38,7 +35,6 @@ REMEMBER: This assignment will be part of your final portfolio
 Go to https://osf.io/ecxsj/files/ and download the files associated with Experiment 2 (there should be 29).  
 The data is associated with Experiment 2 of the article at the following DOI https://doi.org/10.1016/j.concog.2019.03.007  
 
-<<<<<<< HEAD
 1) Put the data from all subjects into a single data frame
 ```{r}
 #Listing all the csv files
@@ -113,12 +109,14 @@ df_staircase %>%
 #No pooling model 
 logistic_model_nopooling <- glm(correct ~ target.contrast*subject, data = df_staircase, family = "binomial")
 df_staircase$fitted_nopooling <- fitted(logistic_model_nopooling)
+df_staircase$fitted_nopooling2 <- logistic_model_nopooling$fitted.values
 
-df_staircase %>% 
-  ggplot(aes(x = target.contrast, y = fitted_nopooling))+
+ggplot(df_staircase, aes(x = target.contrast, y = fitted_nopooling))+
   geom_point()+
   geom_line(aes(target.contrast, fitted_nopooling, color = "red"))+
   facet_wrap(~subject)
+
+#use model$fitted.values to get the points in probability (instead of log-likelihood)
 
 ```
 
@@ -136,10 +134,10 @@ df_staircase %>%
   stat_smooth(method="glm", se=FALSE, method.args = list(family=binomial))+
   facet_wrap(~subject)
 
-ggplot(data = df_staircase) +
-geom_point(aes(x = target.contrast, y = fitted(logistic_model_pooling), color = "complete pooling")) +
-geom_point(aes(x = target.contrast, y = fitted(logistic_model_partialpooling), color = "partial pooling")) +
-facet_wrap( ~ subject)
+ggplot(data = df_staircase) + 
+  geom_point(aes(x = target.contrast, y = fitted(logistic_model_pooling), color = "complete pooling")) +
+  geom_point(aes(x = target.contrast, y = fitted(logistic_model_partialpooling), color = "partial pooling")) +
+  facet_wrap( ~ subject)
 ```
     
     v. in your own words, describe how the partial pooling model allows for a better fit for each subject 
