@@ -121,13 +121,12 @@ The log-likelihood value from "logLike" function is -10622.03, where our model y
 2) Use log-likelihood ratio tests to argue for the addition of predictor variables, start from the null model, `glm(correct ~ 1, 'binomial', data)`, then add subject-level intercepts, then add a group-level effect of _target.frames_ and finally add subject-level slopes for _target.frames_. Also assess whether or not a correlation between the subject-level slopes and the subject-level intercepts should be included.
 ```{r}
 m_null <- glm(correct ~ 1, family = binomial, data = df)
-m_ranint <- glmer(correct ~ 1 + (1|subject), family = binomial, data = df)
-m <- glmer(correct ~ target.frames + (1|subject), family = binomial, data = df)
-m_ranslope <- glmer(correct ~ target.frames(target.frames|subject), family = binomial, data = df) #is this what the text means?
-m_target <- glmer(correct ~ 1 + target.frames + (target.frames|subject), family = binomial, data = df)
-m_target_no_cor <- glmer(correct ~ 1 + target.frames + (target.frames||subject), family = binomial, data = df) #isn't this identical to the one above?? 
-model_text <- c("m_null", "m_ranint", "m_ranslope", "m_target_no_cor", "m_target")
-logLik_values <- anova(m_ranint, m_null, m_ranslope, m_target, m_target_no_cor)$logLik
+m_int <- glmer(correct ~ 1 + (1|subject), family = binomial, data = df)
+m_frame_int <- glmer(correct ~ target.frames + (1|subject), family = binomial, data = df)
+m_frame_slope <- glmer(correct ~ target.frames+ (target.frames|subject), family = binomial, data = df) 
+
+model_text <- c("m_int", "m_null", "m_frame_int", "m_frame_slope")
+logLik_values <- anova(m_int, m_null, m_frame_int, m_frame_slope)$logLik
 as.tibble(cbind(model_text, logLik_values))
 
 ```
@@ -137,9 +136,9 @@ I see that adding target.frames as a fixed effect and including target.frames as
 ```{r}
 df %>% 
   ggplot() +
-   geom_smooth(aes(x = target.frames, y = fitted(m_target), color = "Partial Pooled")) + 
+   geom_smooth(aes(x = target.frames, y = fitted(m_frame_slope), color = "Partial Pooled")) + 
    geom_smooth(aes(x = target.frames, y = fitted(m_pool), color = "Pooled")) +
-   facet_wrap( ~ subject) + 
+   facet_wrap( ~ subject)+
    labs(title = "Estimated group-level function pr. subject") +
    labs(x = "x = target.frames (1:6)", y = "y = estimated functions (subject level)")
 ```
@@ -150,6 +149,8 @@ df %>%
 df_24 <- df %>% 
   filter(subject == "24")
 mean(df_24$correct)
+
+
 ```
 Using likelihood ratio tests I compared models that included target.frames as fixed effect to intercept models whilst varying the random effects. I found that the model that best predicted accuracy had target.frames as fixed effect and for random effects; subject-level for random intercept and target.frames for random slope and including their interaction ($$\chi^2(1) = 22.93,  p < 0.00001$$). 
 
@@ -159,8 +160,8 @@ I've plotted the estimated group-level function pr. subject against a function t
 ```{r}
 m_pas <- glmer(correct ~ target.frames + pas + (target.frames|subject), family = binomial, data = df)
 m_pas_inter <- glmer(correct ~ target.frames * pas + (target.frames|subject), family = binomial, data = df)
-anova(m_target, m_pas, m_pas_inter)
-summary(m_partial_pool)
+anova(m_frame_slope, m_pas, m_pas_inter)
+anova(m_pas, m_pas_inter)
 ```
 I compared the model with pas as fixed effect and another model including the interaction between pas and target.frames to a model with only target.frames as fixed effect. 
 
