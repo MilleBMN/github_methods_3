@@ -80,29 +80,29 @@ m_partial_pool <- glmer(correct ~ target.frames + (1|subject), data = df, family
 
     i. the likelihood-function for logistic regression is: $L(p)={\displaystyle\prod_{i=1}^Np^{y_i}(1-p)^{(1-y_i)}}$ (Remember the probability mass function for the Bernoulli Distribution). Create a function that calculates the likelihood.  
 ```{r}
-likelihood_function <- function(model, y) {
+likelihood_function <- function(model) {
   p <- fitted(model) #fitted values of the model
-  y <- y #this is the observed values
-  
-  return(prod(p^y*(1-p)^(1-y)))
+  y <- as.vector(model.response(model.frame(model), type = "numeric")) #this is the observed values
+  likelihood <-  prod(p^y*(1-p)^(1-y)) # The likelihood function for logistic regression
+  return(likelihood)
 }
 
 ```
     
     ii. the log-likelihood-function for logistic regression is: $l(p) = {\displaystyle\sum_{i=1}^N}[y_i\ln{p}+(1-y_i)\ln{(1-p)}$. Create a function that calculates the log-likelihood  
 ```{r}
-log_likelihood_function <- function(model, y) {
-  p <- fitted(model)
-  y <- y
-  
-  return(sum(y*log(p)+(1-y)*log(1-p)))
+log_likelihood_function <- function(model) {
+  p <- fitted(model) #fitted values of the model
+  y <- as.vector(model.response(model.frame(model), type = "numeric")) #this is the observed values
+  log_likelihood <- sum(y*log(p)+(1-y)*log(1-p)) # The log-likelihood function for logistic regression
+  return(log_likelihood)
 }
 ```
     
     iii. apply both functions to the pooling model you just created. Make sure that the log-likelihood matches what is returned from the _logLik_ function for the pooled model. Does the likelihood-function return a value that is surprising? Why is the log-likelihood preferable when working with computers with limited precision?  
 ```{r}
-likelihood_function(m_pool, df$correct)
-log_likelihood_function(m_pool, df$correct)
+likelihood_function(m_pool)
+log_likelihood_function(m_pool)
 logLik(m_pool)
 ```
 The LogLik from my function matches the output from "logLik" function.
@@ -122,12 +122,14 @@ The log-likelihood value from "logLike" function is -10622.03, where our model y
 ```{r}
 m_null <- glm(correct ~ 1, family = binomial, data = df)
 m_ranint <- glmer(correct ~ 1 + (1|subject), family = binomial, data = df)
-m_ranslope <- glmer(correct ~ 1 + (target.frames|subject), family = binomial, data = df) #is this what the text means?
+m <- glmer(correct ~ target.frames + (1|subject), family = binomial, data = df)
+m_ranslope <- glmer(correct ~ target.frames(target.frames|subject), family = binomial, data = df) #is this what the text means?
 m_target <- glmer(correct ~ 1 + target.frames + (target.frames|subject), family = binomial, data = df)
 m_target_no_cor <- glmer(correct ~ 1 + target.frames + (target.frames||subject), family = binomial, data = df) #isn't this identical to the one above?? 
 model_text <- c("m_null", "m_ranint", "m_ranslope", "m_target_no_cor", "m_target")
 logLik_values <- anova(m_ranint, m_null, m_ranslope, m_target, m_target_no_cor)$logLik
 as.tibble(cbind(model_text, logLik_values))
+
 ```
 I see that adding target.frames as a fixed effect and including target.frames as random slope and subject as random intercept whilst including their correlation creates the LogLikelihood value closest to zero ie. is the best model.
 
@@ -158,6 +160,7 @@ I've plotted the estimated group-level function pr. subject against a function t
 m_pas <- glmer(correct ~ target.frames + pas + (target.frames|subject), family = binomial, data = df)
 m_pas_inter <- glmer(correct ~ target.frames * pas + (target.frames|subject), family = binomial, data = df)
 anova(m_target, m_pas, m_pas_inter)
+summary(m_partial_pool)
 ```
 I compared the model with pas as fixed effect and another model including the interaction between pas and target.frames to a model with only target.frames as fixed effect. 
 
