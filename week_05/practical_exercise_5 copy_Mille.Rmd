@@ -149,12 +149,12 @@ df %>%
 df_24 <- df %>% 
   filter(subject == "24")
 mean(df_24$correct)
-
+t.test(df_24$correct, mu = 0.5) #one sample t-test
 
 ```
 Using likelihood ratio tests I compared models that included target.frames as fixed effect to intercept models whilst varying the random effects. I found that the model that best predicted accuracy had target.frames as fixed effect and for random effects; subject-level for random intercept and target.frames for random slope and including their interaction ($$\chi^2(1) = 22.93,  p < 0.00001$$). 
 
-I've plotted the estimated group-level function pr. subject against a function that's based on a pooled model that hence generates a "grand-slope". I see that the functions generally fit together except for participant 024 that has a generally low score. However, the performance for this participant was larger than chance (>50%). 
+I've plotted the estimated group-level function pr. subject against a function that's based on a pooled model that hence generates a "grand-slope". I see that the functions generally fit together except for participant 024 that has a generally low score. However, the performance for this participant was larger than chance (>50%). We used a t-test to make sure that the difference is significantly different from chance. 
 
 3) Now add _pas_ to the group-level effects - if a log-likelihood ratio test justifies this, also add the interaction between _pas_ and _target.frames_ and check whether a log-likelihood ratio test justifies this  
 ```{r}
@@ -172,7 +172,6 @@ It did converge.
 
     ii. plot the estimated group-level functions over `xlim=c(0, 8)` for each of the four PAS-ratings - add this plot to your report (see: 5.2.i) and add a description of your chosen model. Describe how _pas_ affects accuracy together with target duration if at all. Also comment on the estimated functions' behaviour at target.frame=0 - is that behaviour reasonable?  
 ```{r}
-m_pas_inter <- glmer(correct ~ target.frames * pas + (target.frames|subject), family = binomial, data = df)
 df %>% 
   ggplot() + 
   geom_point(aes(x = target.frames, y = fitted(m_pas_inter), color = pas))+
@@ -181,6 +180,10 @@ df %>%
   labs(x = "Target duration (target.frames)", y = "Estimated group-level function") + 
   theme_bw()
 ```
+We see by eyeballing the plot that the subjects' subjective pas-ratings are pretty good predictors for accuracy, meaning that the higher the pas-rating the higher accuracy generally. We also see a pattern in all of the four pas-ratings that the longer the duration, the more accurate responses. 
+- Smaller distributions (less errors)
+- at 1 frame there's not much difference
+
 ```{r}
 interactions::interact_plot(model = m_pas_inter, pred = "target.frames", modx = "pas") # visualizing the effects of pas and targetframes and their interactions
 coef(summary(m_pas_inter))
@@ -202,8 +205,14 @@ We want to test a hypothesis for each of the three neighbouring differences in P
 ```{r}
 #The model is the same as model m_pas_inter
 summary(m_pas_inter)
+
+pacman::p_load(boot)
+inv.logit(0.11481)
+inv.logit(0.44718)
+
 ```
-    
+I see that the estimate for change in accuracy predicted by target.frame for pas 1 is simply lower (0.11481) than the estimate for change in accuracy in pas2 (0.44718). 
+ 
 2) `summary` won't allow you to test whether accuracy increases faster with objective evidence for PAS 3 than for PAS 2 (unless you use `relevel`, which you are not allowed to in this exercise). Instead, we'll be using the function `glht` from the `multcomp` package
 ```{r}
 pacman::p_load(multcomp)
@@ -214,12 +223,40 @@ glht(m_pas_inter)
 
     i. To redo the test in 6.1.i, you can create a _contrast_ vector. This vector will have the length of the number of estimated group-level effects and any specific contrast you can think of can be specified using this. For redoing the test from 6.1.i, the code snippet below will do
 ```{r}
-contrasts <- cbind()
+# testing whether PAS 2 is different from PAS 1
+contrast.vector <- matrix(c(0, 0, 0, 0, 0, 1, 0, 0), nrow=1)
+gh <- glht(m_pas_inter, contrast.vector)
+print(summary(gh)) #p-value is significant
+inv.logit(coef(gh))
 ```
     
     ii. Now test the hypothesis that accuracy increases faster with objective evidence for PAS 3 than for PAS 2.
+```{r}
+#intercepts between PAS 2 and PAS 3
+contrast.vector2 <- matrix(c(0, -1, 1, 0, 0, 0, 0, 0), nrow=1)
+gh2 <- glht(m_pas_inter, contrast.vector)
+print(summary(gh2))
+
+
+contrast.vector3 <- matrix(c(-1, 0, 0, 0, 0, 0, 1, 0), nrow=1) #Loooool what? this no good
+gh3 <- glht(m_pas_inter, contrast.vector)
+print(summary(gh3)) 
+```
+    
     iii. Also test the hypothesis that accuracy increases faster with objective evidence for PAS 4 than for PAS 3
+```{r}
+contrast.vector4 <- matrix(c(-1, 0, 0, 0, 0, 0, 0, 1), nrow=1) #No idea, but def not right
+gh4 <- glht(m_pas_inter, contrast.vector)
+print(summary(gh4))
+```
+    
 3) Finally, test that whether the difference between PAS 2 and 1 (tested in 6.1.i) is greater than the difference between PAS 4 and 3 (tested in 6.2.iii)
+```{r}
+#contrast.vector4 <- matrix(c(-1, 0, 0, 0, 0, 0, 0, 1), nrow=1) #No idea, but def not right
+#gh4 <- glht(m_pas_inter, contrast.vector)
+#print(summary(gh4))
+```
+
 
 ### Snippet for 6.2.i
 ```{r, eval=FALSE}
@@ -236,7 +273,12 @@ print(summary(gh))
 
 # EXERCISE 7 - Estimate psychometric functions for the Perceptual Awareness Scale and evaluate them  
 
-We saw in 5.3 that the estimated functions went below chance at a target duration of 0 frames (0 ms). This does not seem reasonable, so we will be trying a different approach for fitting here.  
+We saw in 5.3 that the estimated functions went below chance at a target duration of 0 frames (0 ms). This does not seem reasonable, so we will be trying a different approach for fitting here.
+```{r}
+summary(m_pas_inter)
+inv.logit(-0.12164)
+```
+
 We will fit the following function that results in a sigmoid, $f(x) = a + \frac {b - a} {1 + e^{\frac {c-x} {d}}}$  
 It has four parameters: _a_, which can be interpreted as the minimum accuracy level, _b_, which can be interpreted as the maximum accuracy level, _c_, which can be interpreted as the so-called inflexion point, i.e. where the derivative of the sigmoid reaches its maximum and _d_, which can be interpreted as the steepness at the inflexion point. (When _d_ goes towards infinity, the slope goes towards a straight line, and when it goes towards 0, the slope goes towards a step function).  
   
