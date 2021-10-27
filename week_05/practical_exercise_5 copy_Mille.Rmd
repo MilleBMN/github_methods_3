@@ -13,7 +13,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(tidyverse, plyr, lmer, lme4, lmerTest, EnvStats, rstanarm, interactions, readbulk)
+pacman::p_load(tidyverse, plyr, lmer, lme4, lmerTest, EnvStats, rstanarm, interactions, readbulk, dplyr)
 ```
 
 # Exercises and objectives
@@ -185,6 +185,7 @@ We see by eyeballing the plot that the subjects' subjective pas-ratings are pret
 - at 1 frame there's not much difference
 
 ```{r}
+# This is a nice plot that I actually don't need to answer the question... But it's pretty!
 interactions::interact_plot(model = m_pas_inter, pred = "target.frames", modx = "pas") # visualizing the effects of pas and targetframes and their interactions
 coef(summary(m_pas_inter))
 estimates <- c(coef(summary(m_pas_inter))[1:8])
@@ -234,19 +235,19 @@ inv.logit(coef(gh))
 ```{r}
 #intercepts between PAS 2 and PAS 3
 contrast.vector2 <- matrix(c(0, -1, 1, 0, 0, 0, 0, 0), nrow=1)
-gh2 <- glht(m_pas_inter, contrast.vector)
+gh2 <- glht(m_pas_inter, contrast.vector2)
 print(summary(gh2))
 
 
 contrast.vector3 <- matrix(c(-1, 0, 0, 0, 0, 0, 1, 0), nrow=1) #Loooool what? this no good
-gh3 <- glht(m_pas_inter, contrast.vector)
+gh3 <- glht(m_pas_inter, contrast.vector3)
 print(summary(gh3)) 
 ```
     
     iii. Also test the hypothesis that accuracy increases faster with objective evidence for PAS 4 than for PAS 3
 ```{r}
 contrast.vector4 <- matrix(c(-1, 0, 0, 0, 0, 0, 0, 1), nrow=1) #No idea, but def not right
-gh4 <- glht(m_pas_inter, contrast.vector)
+gh4 <- glht(m_pas_inter, contrast.vector4)
 print(summary(gh4))
 ```
     
@@ -256,7 +257,7 @@ print(summary(gh4))
 #gh4 <- glht(m_pas_inter, contrast.vector)
 #print(summary(gh4))
 ```
-
+This is a pretty difficult task, when you don't understand the logic of the contrast vectors... 
 
 ### Snippet for 6.2.i
 ```{r, eval=FALSE}
@@ -285,6 +286,9 @@ It has four parameters: _a_, which can be interpreted as the minimum accuracy le
 We can define a function of a residual sum of squares as below
 
 ```{r, eval=FALSE}
+# What is it that the function does? 
+
+#change stuff in this one a keep the original above 
 RSS <- function(dataset, par)
 {
     ## "dataset" should be a data.frame containing the variables x (target.frames)
@@ -292,25 +296,109 @@ RSS <- function(dataset, par)
     
     ## "par" are our four parameters (a numeric vector) 
     ## par[1]=a, par[2]=b, par[3]=c, par[4]=d
+    a = par[1]
+    b = par[2]
+    c = par[3]
+    d = par[4]
     x <- dataset$x
     y <- dataset$y
-    y.hat <- ## you fill in the estimate of y.hat
+    y.hat <- a + ((b-a)/(1+exp(1)^((c-x)/d))) ## you fill in the estimate of y.hat
     RSS <- sum((y - y.hat)^2)
     return(RSS)
 }
+
+#Define the function he has put above?? 
+sigmoid <- function(a, b, c, d) {
+  output <-  a + \frac {b - a} {1 + e^{\frac {c-x} {d}}}
+  a + ((b-a)/(1+e)^((c-x)/d))
+  return(output)
+}
+
 ```
 
 1) Now, we will fit the sigmoid for the four PAS ratings for Subject 7
+```{r}
+df_7 <- df %>% 
+  filter(subject == "7") %>% 
+  dplyr::select(target.frames, correct, pas) %>% 
+  dplyr::rename(x = target.frames, y = correct)
+```
+
     i. use the function `optim`. It returns a list that among other things contains the four estimated parameters. You should set the following arguments:  
     `par`: you can set _c_ and _d_ as 1. Find good choices for _a_ and _b_ yourself (and argue why they are appropriate)  
     `fn`: which function to minimise?  
     `data`: the data frame with _x_, _target.frames_, and _y_, _correct_ in it  
     `method`: 'L-BFGS-B'  
     `lower`: lower bounds for the four parameters, (the lowest value they can take), you can set _c_ and _d_ as `-Inf`. Find good choices for _a_ and _b_ yourself (and argue why they are appropriate)  
-    `upper`: upper bounds for the four parameters, (the highest value they can take) can set _c_ and _d_ as `Inf`. Find good choices for _a_ and _b_ yourself (and argue why they are appropriate)    
+    `upper`: upper bounds for the four parameters, (the highest value they can take) can set _c_ and _d_ as `Inf`. Find good choices for _a_ and _b_ yourself (and argue why they are appropriate)  
+```{r}
+?optim
+par_vec <- c(0.5, 1, 1, 1)
+optim_7 <- optim(data = df_7, fn = RSS, par = par_vec, method = 'L-BFGS-B', lower = c(0, 0, -Inf, -Inf), upper = c(1, 1, Inf, Inf))
+optim_7
+```
+    
     ii. Plot the fits for the PAS ratings on a single plot (for subject 7) `xlim=c(0, 8)`
-    iii. Create a similar plot for the PAS ratings on a single plot (for subject 7), but this time based on the model from 6.1 `xlim=c(0, 8)`   
-    iv. Comment on the differences between the fits - mention some advantages and disadvantages of each way  
-2) Finally, estimate the parameters for all subjects and each of their four PAS ratings. Then plot the estimated function at the group-level by taking the mean for each of the four parameters, _a_, _b_, _c_ and _d_ across subjects. A function should be estimated for each PAS-rating (it should look somewhat similar to Fig. 3 from the article:  https://doi.org/10.1016/j.concog.2019.03.007)
+```{r}
+# Using the estimated parameters suggested by the optim-function in the sigmoid-function for participant 7
+sigmoid_function_7 <- function(x) {
+  optim_7$par[1] + ((optim_7$par[2]-optim_7$par[1])/(1+exp(1)^((optim_7$par[3]-x)/optim_7$par[4])))}
+
+df_7$y.hat <- sigmoid_function_7(df_7$x)
+
+df_7 %>% 
+  ggplot() +
+  geom_point(aes(x, y = y.hat)) +
+  labs(title = "Estimated fits for PAS ratings",
+       x = "Target.Frames",
+       y = "Estimated PAS ratings using sigmoid-function") +
+  facet_wrap(~pas)+
+  theme_bw()
+```
+    
+    iii. Create a similar plot for the PAS ratings on a single plot (for subject 7), but this time based on the model from 6.1 `xlim=c(0, 8)` 
+```{r}
+# the model: m_pas_inter <- glmer(correct ~ target.frames * pas + (target.frames|subject), family = binomial, data = df)
+
+df_7_new <- df
+df_7_new$fitted <- fitted.values(m_pas_inter)
+df_7_new <- df_7_new %>% 
+  filter(subject == "7")
+
+df_7_new %>% 
+  ggplot() + 
+  geom_point(aes(target.frames, y = fitted, color = pas))+
+  facet_wrap( ~ pas) +
+  labs(title = "Estimated accurary dependent on target duration and PAS for subject 7") +
+  labs(x = "Target duration (target.frames)", y = "Estimated accuracy") + 
+  theme_bw()
+
+```
+    
+    iv. Comment on the differences between the fits - mention some advantages and disadvantages of each way
+
+
+2) Finally, estimate the parameters for all subjects and each of their four PAS ratings.
+```{r}
+optim_all <- optim(data = df, fn = RSS, par = par_vec, method = 'L-BFGS-B', lower = c(0, 0, -Inf, -Inf), upper = c(1, 1, Inf, Inf))
+
+parameters_func <- function(i){
+  dat <- df[which(df$subject == i),] # subsetting the data so it only includes one participant
+  optim_func <- optim(data = df, fn = RSS, par = par_vec, method = 'L-BFGS-B', lower = c(0, 0, -Inf, -Inf), upper = c(1, 1, Inf, Inf)) # running a model on the data from one participant
+  pas_df <- data.frame(cbind(df$pas, "mean" = mean(optim_func))) # creating a data frame with the variables needed in the plot
+  
+  return(pas_df)
+}
+
+parameters_func(1)
+
+# Running the function for every participant (doing it twice so the plots are nicer to look at)
+subjects <- c(1:16)
+plots <- lapply(subjects, FUN=nopoolfun)
+
+
+```
+
+Then plot the estimated function at the group-level by taking the mean for each of the four parameters, _a_, _b_, _c_ and _d_ across subjects. A function should be estimated for each PAS-rating (it should look somewhat similar to Fig. 3 from the article:  https://doi.org/10.1016/j.concog.2019.03.007)
     i. compare with the figure you made in 5.3.ii and comment on the differences between the fits - mention some advantages and disadvantages of both.
     
