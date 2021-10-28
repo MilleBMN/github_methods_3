@@ -1,8 +1,11 @@
 ---
 title: "practical_exercise_5, Methods 3, 2021, autumn semester"
-author: 'Mille Bryske'
+author: "Mille Bryske"
 date: "27/10-21"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 <style type="text/css">
@@ -13,7 +16,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(tidyverse, plyr, lmer, lme4, lmerTest, EnvStats, rstanarm, interactions, readbulk, dplyr)
+pacman::p_load(tidyverse, plyr, lme4, lmerTest, EnvStats, rstanarm, interactions, readbulk, dplyr)
 ```
 
 # Exercises and objectives
@@ -267,15 +270,15 @@ This is a pretty difficult task, when you don't understand the logic of the cont
 
 ### Snippet for 6.2.i
 ```{r, eval=FALSE}
-## testing whether PAS 2 is different from PAS 1
-contrast.vector <- matrix(c(0, 0, 0, 0, 0, 1, 0, 0), nrow=1)
-gh <- glht(pas.intact.tf.ranslopeint.with.corr, contrast.vector)
-print(summary(gh))
-## as another example, we could also test whether there is a difference in
-## intercepts between PAS 2 and PAS 3
-contrast.vector <- matrix(c(0, -1, 1, 0, 0, 0, 0, 0), nrow=1)
-gh <- glht(pas.intact.tf.ranslopeint.with.corr, contrast.vector)
-print(summary(gh))
+# ## testing whether PAS 2 is different from PAS 1
+# contrast.vector <- matrix(c(0, 0, 0, 0, 0, 1, 0, 0), nrow=1)
+# gh <- glht(pas.intact.tf.ranslopeint.with.corr, contrast.vector)
+# print(summary(gh))
+# ## as another example, we could also test whether there is a difference in
+# ## intercepts between PAS 2 and PAS 3
+# contrast.vector <- matrix(c(0, -1, 1, 0, 0, 0, 0, 0), nrow=1)
+# gh <- glht(pas.intact.tf.ranslopeint.with.corr, contrast.vector)
+# print(summary(gh))
 ```
 
 # EXERCISE 7 - Estimate psychometric functions for the Perceptual Awareness Scale and evaluate them  
@@ -291,7 +294,7 @@ It has four parameters: _a_, which can be interpreted as the minimum accuracy le
   
 We can define a function of a residual sum of squares as below
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 
 RSS <- function(dataset, par)
 {
@@ -333,7 +336,6 @@ df_7 <- df %>%
 I would argue that a good a-value is 0.5, since chance level is the lowest level of performance we would expect. Additionally, I will set my b-value to 1, since a subject i theory could have an accuracy of 100%, even though unlikely. 
 
 ```{r}
-?optim
 par_vec <- c(0.5, 1, 1, 1) #setting my par-values
 
 #running the optim function on all four pas scores
@@ -444,33 +446,58 @@ for (i in 1:29){
   new_df <- rbind(new_df, newer_df) #
 }
 
+# Extracting mean parameters from parameters df (very clunky way to do it)
+a_mean_pas_1 <- mean(new_df$a_value_pas_1)
+b_mean_pas_1 <- mean(new_df$b_value_pas_1)
+c_mean_pas_1 <- mean(new_df$c_value_pas_1)
+d_mean_pas_1 <- mean(new_df$d_value_pas_1)
 
+a_mean_pas_2 <- mean(new_df$a_value_pas_2)
+b_mean_pas_2 <- mean(new_df$b_value_pas_2)
+c_mean_pas_2 <- mean(new_df$c_value_pas_2)
+d_mean_pas_2 <- mean(new_df$d_value_pas_2)
+
+a_mean_pas_3 <- mean(new_df$a_value_pas_3)
+b_mean_pas_3 <- mean(new_df$b_value_pas_3)
+c_mean_pas_3 <- mean(new_df$c_value_pas_3)
+d_mean_pas_3 <- mean(new_df$d_value_pas_3)
+a_mean_pas_4 <- mean(new_df$a_value_pas_4)
+
+b_mean_pas_4 <- mean(new_df$b_value_pas_4)
+c_mean_pas_4 <- mean(new_df$c_value_pas_4)
+d_mean_pas_4 <- mean(new_df$d_value_pas_4)
+
+# Calculating mean y_hats pr. pas score
+new_df <- new_df %>% 
+  group_by(x) %>% 
+  mutate(y_hat_1_mean_grand = mean(y_hat_1),
+       y_hat_2_mean_grand = mean(y_hat_2),
+       y_hat_3_mean_grand = mean(y_hat_3),
+       y_hat_4_mean_grand = mean(y_hat_4)) %>% 
+  ungroup()
 
 ```
 
-
-```{r}
-#Doing the same thing, but for all participants. We need to make a function
-
-optim_all <- optim(data = df, fn = RSS, par = par_vec, method = 'L-BFGS-B', lower = c(0, 0, -Inf, -Inf), upper = c(1, 1, Inf, Inf))
-
-parameters_func <- function(i){
-  dat <- df[which(df$subject == i),] # subsetting the data so it only includes one participant
-  optim_func <- optim(data = df, fn = RSS, par = par_vec, method = 'L-BFGS-B', lower = c(0, 0, -Inf, -Inf), upper = c(1, 1, Inf, Inf)) # running a model on the data from one participant
-  pas_df <- data.frame(cbind(df$pas, "mean" = mean(optim_func))) # creating a data frame with the variables needed in the plot
-  
-  return(pas_df)
-}
-
-parameters_func(1)
-
-# Running the function for every participant (doing it twice so the plots are nicer to look at)
-subjects <- c(1:16)
-plots <- lapply(subjects, FUN=nopoolfun)
-
-
-```
 
 Then plot the estimated function at the group-level by taking the mean for each of the four parameters, _a_, _b_, _c_ and _d_ across subjects. A function should be estimated for each PAS-rating (it should look somewhat similar to Fig. 3 from the article:  https://doi.org/10.1016/j.concog.2019.03.007)
+```{r}
+# Plotting 
+# new_df %>% 
+#   ggplot() + 
+#   geom_smooth(aes(x = x, y = y_hat_1, color = "pas1"), method = "loess") + 
+#   geom_smooth(aes(x = x, y = y_hat_2, color = "pas2"), method = "loess") + 
+#   geom_smooth(aes(x = x, y = y_hat_3, color = "pas3"), method = "loess") + 
+#   geom_smooth(aes(x = x, y = y_hat_4, color = "pas4"), method = "loess") +
+#   geom_point(aes(x = x, y = y_hat_1_mean_grand, color = "pas1"))+
+#   geom_point(aes(x = x, y = y_hat_2_mean_grand, color = "pas2"))+
+#   geom_point(aes(x = x, y = y_hat_3_mean_grand, color = "pas3"))+
+#   geom_point(aes(x = x, y = y_hat_4_mean_grand, color = "pas4"))+
+#   labs(title = "Estimated fits for accuracy ratings pr. PAS for all subjects",
+#        x = "Target.Frames",
+#        y = "Estimated accuracy ratings using sigmoid-function") +
+#   theme_bw()
+```
+
+
     i. compare with the figure you made in 5.3.ii and comment on the differences between the fits - mention some advantages and disadvantages of both.
     
